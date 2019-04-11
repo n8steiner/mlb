@@ -45,6 +45,45 @@ public class Convert {
     HibernateUtil.stopConnectionProvider(); //PPD
 		HibernateUtil.getSessionFactory().close();
 	}
+
+	public static void convertTeams(){
+		try{
+			PreparedStatement ps = conn.prepareStatement("select" +
+					"teamID," +
+					"name" +
+					"lgID" +
+					"yearFounded" +
+					"yearLast" +
+					"from Teams");//the years will require joins/searches
+			
+			ResultSet rs = ps.executeQuery();
+			int count=0;
+			while(rs.next()){
+				if (count % 10 == 0) System.out.println("num teams: " + count);
+
+				String tid = rs.getString("teamID");
+				String name = rs.getString("name");
+				String league = rs.getString("lgID");
+
+				//where do we get these from
+				String yearFounded = rs.getString("yearFounded");
+				String yearLast = rs.getString("yearLast");
+
+				if(tid == null || tid.isEmpty() || name == null || name.isEmpty()){
+					continue;
+				}
+
+				Team t = new Team();
+				t.id = tid;
+				t.name = name;
+				
+				if(league != null){
+					t.leagueID = league;
+				}
+
+			}
+		}
+	}
 		
 	public static void convertPlayers() {
 		try {
