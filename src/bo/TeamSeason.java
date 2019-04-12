@@ -1,21 +1,147 @@
 package bo;
 
+import java.io.Serializable;
+import java.util.Comparator;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Embeddable;
+import javax.persistence.EmbeddedId;
+import javax.persistence.Entity;
+import javax.persistence.JoinColumn;
+import javax.persistence.joinColumns;
+import javax.persistence.inverseJoinColumns;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToOne;
+import javax.persistence.ManyToMany;
+import javax.persistence.HashSet;
+
+
+public class TeamSeason implements Serializable {
+
+  @EmbeddedId
+  TeamSeasonId id;
+  
+  @Embeddable
+  static class TeamSeasonId implements Serializable {
+    @ManyToOne
+    @JoinColumn(name = "teamid", referencedColumnName = "teamid", insertable = false, updatable = false)
+		Team team;
+		@Column(name="year")
+		Integer teamYear;
+		@Override
+		public boolean equals(Object obj) {
+			if(!(obj instanceof TeamSeasonId)){
+				return false;
+			}
+			TeamSeasonId other = (TeamSeasonId)obj;
+			// in order for two different object of this type to be equal,
+			// they must be for the same year and for the same player
+			return (this.team==other.team &&
+					this.teamYear==other.teamYear);
+		}
+		 
+		@Override
+		public int hashCode() {
+			Integer hash = 0;
+			if (this.team != null) hash += this.team.hashCode();
+			if (this.teamYear != null) hash += this.teamYear.hashCode();
+			return hash;
+		}
+  }
+
+  //copied from moodle to handle three-way connection
+  @ManyToMany(fetch = FetchType.LAZY)
+
+  @JoinTable(name = "teamseasonplayer", 
+
+    joinColumns={
+      @JoinColumn(name="teamId", insertable = false, updatable = false), 
+      @JoinColumn(name="year",  insertable = false, updatable = false)}, 
+
+    inverseJoinColumns={
+      @JoinColumn(name="playerId", insertable = false, updatable = false)})
+
+  Set<Player> players = new HashSet<Player>();
 
 
 
+  @Column
+  int gamesPlayed;
+  @Column
+  int wins;
+  @Column
+  int losses;
+  @Column
+  int rank;
+  @Column
+  int totalAttendance;
 
+  //is this necessary?
+  public TeamSeason() {}
+	
+	public TeamSeason(Team t, Integer year) {
+		TeamSeasonId tsi = new TeamSeasonId();
+		tsi.team = t;
+		tsi.teamYear = year;
+		this.id = tsi;
+  }
+  
 
+  //getters, setters, and other utility functions
 
-//copied from moodle to handle three-way connection
-@ManyToMany(fetch = FetchType.LAZY)
+  //don't want a setter for TeamId
+	public Integer getTeamId() {
+		return this.id.TeamSeasonId;
+  }
+  
+  public void setYear(Integer year) {
+		this.id.teamYear = year;
+	}
 
-@JoinTable(name = "teamseasonplayer", 
+	public Integer getYear() {
+		return this.id.teamYear;
+	}
 
-   joinColumns={
-     @JoinColumn(name="teamId", insertable = false, updatable = false), 
-     @JoinColumn(name="year",  insertable = false, updatable = false)}, 
+  public void setGamesPlayed(Integer gamesPlayed){
+    this.gamesPlayed = gamesPlayed;
+  }
 
-   inverseJoinColumns={
-     @JoinColumn(name="playerId", insertable = false, updatable = false)})
+  public Integer getGamesPlayed(){
+    return this.gamesPlayed;
+  }
 
-Set<Player> players = new HashSet<Player>();
+  public void setWins(Integer wins){
+    this.wins = wins;
+  }
+
+  public Integer getWins(){
+    return this.wins;
+  }
+
+  public void setLosses(Integer losses){
+    this.losses = losses;
+  }
+
+  public Integer getLosses(){
+    return this.losses;
+  }
+
+  public void setRank(Integer rank){
+    this.rank = rank;
+  }
+
+  public Integer getRank(){
+    return this.rank;
+  }
+
+  public void setTotalAttendance(Integer totalAttendance){
+    this.totalAttendance = totalAttendance;
+  }
+
+  public Integer getTotalAttendance(){
+    return this.gamesPlayed;
+  }
+
+}
