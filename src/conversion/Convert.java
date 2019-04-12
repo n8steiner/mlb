@@ -16,6 +16,7 @@ import bo.FieldingStats;
 import bo.PitchingStats;
 import bo.Player;
 import bo.PlayerSeason;
+import bo.Team;
 import dataaccesslayer.HibernateUtil;
 
 public class Convert {
@@ -30,6 +31,7 @@ public class Convert {
 			long startTime = System.currentTimeMillis();
 			conn = DriverManager.getConnection(MYSQL_CONN_URL);
 			convertPlayers();
+			convertTeams();
 			long endTime = System.currentTimeMillis();
 			long elapsed = (endTime - startTime) / (1000*60);
 			System.out.println("Elapsed time in mins: " + elapsed);
@@ -64,7 +66,7 @@ public class Convert {
 				String name = rs.getString("name");
 				String league = rs.getString("lgID");
 				String firstYear = "";
-				String recentYear = "";
+				String lastYear = "";
 
 				//get first year
 				PreparedStatement firstYearQuery = conn.prepareStatement("SELECT " +
@@ -79,7 +81,7 @@ public class Convert {
 				firstYearQuery.setString(2, league);
 				ResultSet innerRS = firstYearQuery.executeQuery();
 				while(innerRS.next()){
-						firstYear = firstYearQuery.getString("yearId");
+						firstYear = innerRS.getString("yearId");
 				}
 
 
@@ -95,24 +97,28 @@ public class Convert {
 				recentYearQuery.setString(1, tid);
 				recentYearQuery.setString(2, league);
 				innerRS = recentYearQuery.executeQuery();
-				while(recentYearQuery.next()){
-						lastYear = recentYearQuery.getString("yearId");
+				while(innerRS.next()){
+						lastYear = innerRS.getString("yearId");
 				}
 
 				if(tid == null || tid.isEmpty() || name == null || name.isEmpty() || league == null || league.isEmpty()){
 					continue;
 				}
+				innerRS.close();
 
 				Team t = new Team();
-				t.id = tid;
-				t.name = name;
-				t.league = league;
-				t.yearFounded = firstYear;
-				t.yearLast = lastYear;
+				t.setName(name);
+				t.setLeague(league);
+				t.setYearFounded(Integer.parseInt(firstYear)); 
+				t.setYearLast(Integer.parseInt(lastYear));
+				
+				HibernateUtil.persistTeam(t);
 			}
-			innerRS.close();
 			rs.close();
 			ps.close();
+		}
+		catch(Exception e) {
+			System.out.println("Something went wrong");
 		}
 	}
 		

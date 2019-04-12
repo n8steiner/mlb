@@ -4,15 +4,13 @@ package bo;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.persistence.CollectionTable;
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
-import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
 import javax.persistence.OneToMany;
 
 import org.hibernate.annotations.Fetch;
@@ -29,7 +27,7 @@ public class Team {
 
     //ignoring element collection because we don't have excess fields to pull in
 
-    @OnetoMany(fetch = FetchType.EAGER, cascade=CascadeType.ALL, mappedBy="id.team")
+    @OneToMany(fetch = FetchType.EAGER, cascade=CascadeType.ALL, mappedBy="id.team")
     @Fetch(FetchMode.JOIN)
     Set<TeamSeason> seasons = new HashSet<TeamSeason>();
 
@@ -38,9 +36,9 @@ public class Team {
     @Column
     String league;
     @Column
-    Int yearFounded;
+    Integer yearFounded;
     @Column
-    Int yearLast;
+    Integer yearLast;
 
  
     //make getters and setters and other utility functions
@@ -88,7 +86,7 @@ public class Team {
 		this.league = league;
     }
     
-    public Int getYearFounded() {
+    public Integer getYearFounded() {
 		return yearFounded;
 	}
 
@@ -96,7 +94,7 @@ public class Team {
 		this.yearFounded = yearFounded;
     }
     
-    public Int getYearLast() {
+    public Integer getYearLast() {
 		return yearLast;
 	}
 
@@ -111,7 +109,7 @@ public class Team {
             return false;
         }
         Team other = (Team) obj;
-        return (this.getName().equalsIgnoreCase(other.getName());
+        return (this.getName().equalsIgnoreCase(other.getName()));
     }
 
     @Override
