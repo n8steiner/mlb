@@ -48,13 +48,12 @@ public class Convert {
 
 	public static void convertTeams(){
 		try{
-			PreparedStatement ps = conn.prepareStatement("select" +
-					"teamID," +
-					"name" +
-					"lgID" +
-					"yearFounded" +
-					"yearLast" +
-					"from Teams");//the years will require joins/searches
+			PreparedStatement ps = conn.prepareStatement("select " +
+					"teamID, " +
+					"name, " +
+					"lgID "+
+					"from Teams");
+					//the years will require joins/searches
 			
 			ResultSet rs = ps.executeQuery();
 			int count=0;
@@ -64,24 +63,56 @@ public class Convert {
 				String tid = rs.getString("teamID");
 				String name = rs.getString("name");
 				String league = rs.getString("lgID");
+				String firstYear = "";
+				String recentYear = "";
 
-				//where do we get these from
-				String yearFounded = rs.getString("yearFounded");
-				String yearLast = rs.getString("yearLast");
+				//get first year
+				PreparedStatement firstYearQuery = conn.prepareStatement("SELECT " +
+						"yearId " +
+						"FROM Teams " +
+						"WHERE teamID" +
+						"LIKE ?" + // ?=teamID
+						" AND " +
+						"lgID LIKE ?" + // ?=league
+						"ORDER BY yearID ASC LIMIT 1");
+				firstYearQuery.setString(1, tid);
+				firstYearQuery.setString(2, league);
+				ResultSet innerRS = firstYearQuery.executeQuery();
+				while(innerRS.next()){
+						firstYear = firstYearQuery.getString("yearId");
+				}
 
-				if(tid == null || tid.isEmpty() || name == null || name.isEmpty()){
+
+				//get recent year
+				PreparedStatement recentYearQuery = conn.prepareStatement("SELECT " +
+						"yearId " +
+						"FROM Teams " +
+						"WHERE teamID" +
+						"LIKE ?" + // ?=teamID
+						" AND " +
+						"lgID LIKE ?" + // ?=league
+						"ORDER BY yearID DESC LIMIT 1");
+				recentYearQuery.setString(1, tid);
+				recentYearQuery.setString(2, league);
+				innerRS = recentYearQuery.executeQuery();
+				while(recentYearQuery.next()){
+						lastYear = recentYearQuery.getString("yearId");
+				}
+
+				if(tid == null || tid.isEmpty() || name == null || name.isEmpty() || league == null || league.isEmpty()){
 					continue;
 				}
 
 				Team t = new Team();
 				t.id = tid;
 				t.name = name;
-				
-				if(league != null){
-					t.leagueID = league;
-				}
-
+				t.league = league;
+				t.yearFounded = firstYear;
+				t.yearLast = lastYear;
 			}
+			innerRS.close();
+			rs.close();
+			ps.close();
 		}
 	}
 		
