@@ -17,6 +17,7 @@ import bo.PitchingStats;
 import bo.Player;
 import bo.PlayerSeason;
 import bo.Team;
+import bo.TeamSeason;
 import dataaccesslayer.HibernateUtil;
 
 
@@ -51,7 +52,7 @@ public class Convert {
 
 	public static void convertTeams(){
 		try{
-			PreparedStatement ps = conn.prepareStatement("select teamID, name, lgID from Teams");
+			PreparedStatement ps = conn.prepareStatement("select teamID, name, lgID, yearID, G, W, L, Rank, attendance from Teams");
 					//the years will require joins/searches
 			
 			ResultSet rs = ps.executeQuery();
@@ -64,6 +65,12 @@ public class Convert {
 						String tid = rs.getString("teamID");
 						String name = rs.getString("name");
 						String league = rs.getString("lgID");
+						String currentYear = rs.getString("yearID");
+						String gamesPlayed = rs.getString("G");
+						String wins = rs.getString("W");
+						String losses = rs.getString("L");
+						String rank = rs.getString("Rank");
+						String attendance = rs.getString("attendance");
 						
 						if(tid == null || tid.isEmpty() || name == null || name.isEmpty() || league == null || league.isEmpty()){
 							continue;
@@ -73,22 +80,22 @@ public class Convert {
 						String lastYear = "";
 	
 						//get first year
-						PreparedStatement firstYearQuery = conn.prepareStatement("SELECT yearId FROM Teams WHERE teamID LIKE ? AND lgID LIKE ? ORDER BY yearID ASC LIMIT 1");
+						PreparedStatement firstYearQuery = conn.prepareStatement("SELECT yearID FROM Teams WHERE teamID LIKE ? AND lgID LIKE ? ORDER BY yearID ASC LIMIT 1");
 						firstYearQuery.setString(1, tid);
 						firstYearQuery.setString(2, league);
 						ResultSet innerRS = firstYearQuery.executeQuery();
 						while(innerRS.next()){
-								firstYear = innerRS.getString("yearId");
+								firstYear = innerRS.getString("yearID");
 						}
 	
 	
 						//get recent year
-						PreparedStatement recentYearQuery = conn.prepareStatement("SELECT yearId FROM Teams WHERE teamID LIKE ? AND lgID LIKE ? ORDER BY yearID DESC LIMIT 1");
+						PreparedStatement recentYearQuery = conn.prepareStatement("SELECT yearID FROM Teams WHERE teamID LIKE ? AND lgID LIKE ? ORDER BY yearID DESC LIMIT 1");
 						recentYearQuery.setString(1, tid);
 						recentYearQuery.setString(2, league);
 						innerRS = recentYearQuery.executeQuery();
 						while(innerRS.next()){
-								lastYear = innerRS.getString("yearId");
+								lastYear = innerRS.getString("yearID");
 						}
 						innerRS.close();
 						
@@ -98,11 +105,40 @@ public class Convert {
 						t.setYearFounded(Integer.parseInt(firstYear)); 
 						t.setYearLast(Integer.parseInt(lastYear));
 						HibernateUtil.persistTeam(t);
+						
+						//tid, name, and league were already checked 
+						if(currentYear == null || currentYear.isEmpty()){
+							continue;
+						}
+						
+						System.out.println("made it to create ts");
+						TeamSeason ts = new TeamSeason(t, Integer.parseInt(currentYear));
+						ts.setYear(Integer.parseInt(currentYear));
+						if(gamesPlayed != null && !gamesPlayed.isEmpty()) {
+							ts.setGamesPlayed(Integer.parseInt(gamesPlayed));
+						}
+						if(wins != null && !wins.isEmpty()) {
+							ts.setWins(Integer.parseInt(wins));
+						}
+						if(losses != null && !losses.isEmpty()) {
+							ts.setLosses(Integer.parseInt(losses));
+						}
+						if(rank != null && !rank.isEmpty()) {
+							ts.setRank(Integer.parseInt(rank));
+						}
+						if(attendance != null && !attendance.isEmpty()) {
+							ts.setTotalAttendance(Integer.parseInt(attendance));
+						}
+						System.out.println("made it to persist teamseason");
+						HibernateUtil.persistTeamSeason(ts);
+						
 						count++;
 				}
 			}
 			catch(Exception e) {
 				System.out.println("Something went wrong in the internal query");
+				e.printStackTrace();
+				
 			}
 			
 			rs.close();

@@ -89,8 +89,6 @@ public class TeamSeason implements Serializable {
 
   //getters, setters, and other utility functions
 
-  //don't want a setter for TeamId
-//Comment for testing team only
 	public TeamSeasonId getId() {
 		return this.id;
   }

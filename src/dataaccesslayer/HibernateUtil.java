@@ -97,6 +97,24 @@ public class HibernateUtil {
 		}
 		return list;
 	}
+	
+	public static boolean persistTeamSeason(TeamSeason ts) {
+		Session session = HibernateUtil.getSessionFactory().openSession();
+		Transaction tx = session.getTransaction();
+		try {
+			tx.begin();
+			session.save(ts);
+			tx.commit();
+		} catch (Exception e) {
+			tx.rollback();
+			e.printStackTrace();
+			return false;
+		} finally {
+			if (session.isOpen())
+				session.close();
+		}
+		return true;
+	}
 
 	public static boolean persistTeam(Team t) {
 		Session session = HibernateUtil.getSessionFactory().openSession();
