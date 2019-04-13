@@ -91,9 +91,9 @@ public class TeamSeason implements Serializable {
 
   //don't want a setter for TeamId
 //Comment for testing team only
-//	public Integer getTeamId() {
-//		return this.id.TeamSeasonId;
-//  }
+	public TeamSeasonId getId() {
+		return this.id;
+  }
   
   public void setYear(Integer year) {
 		this.id.teamYear = year;

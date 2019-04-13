@@ -14,6 +14,7 @@ import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
 
 import bo.Player;
 import bo.Team;
+import bo.TeamSeason;
 
 public class HibernateUtil {
 
@@ -21,7 +22,8 @@ public class HibernateUtil {
 
 	static {
 		try {
-			Configuration cfg = new Configuration().addAnnotatedClass(bo.Player.class).addAnnotatedClass(bo.TeamSeason.class).addAnnotatedClass(bo.Team.class)
+			Configuration cfg = new Configuration().addAnnotatedClass(bo.Player.class)
+					.addAnnotatedClass(bo.TeamSeason.class).addAnnotatedClass(bo.Team.class)
 					.addAnnotatedClass(bo.PlayerSeason.class).addAnnotatedClass(bo.BattingStats.class)
 					.addAnnotatedClass(bo.CatchingStats.class).addAnnotatedClass(bo.FieldingStats.class)
 					.addAnnotatedClass(bo.PitchingStats.class).configure();

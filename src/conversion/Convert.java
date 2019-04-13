@@ -19,6 +19,7 @@ import bo.PlayerSeason;
 import bo.Team;
 import dataaccesslayer.HibernateUtil;
 
+
 public class Convert {
 
 	static Connection conn;
@@ -30,7 +31,7 @@ public class Convert {
 		try {
 			long startTime = System.currentTimeMillis();
 			conn = DriverManager.getConnection(MYSQL_CONN_URL);
-			convertPlayers();
+			//convertPlayers();
 			convertTeams();
 			long endTime = System.currentTimeMillis();
 			long elapsed = (endTime - startTime) / (1000*60);
@@ -59,66 +60,73 @@ public class Convert {
 			
 			ResultSet rs = ps.executeQuery();
 			int count=0;
-			while(rs.next()){
-				if (count % 10 == 0) System.out.println("num teams: " + count);
-
-				String tid = rs.getString("teamID");
-				String name = rs.getString("name");
-				String league = rs.getString("lgID");
-				String firstYear = "";
-				String lastYear = "";
-
-				//get first year
-				PreparedStatement firstYearQuery = conn.prepareStatement("SELECT " +
-						"yearId " +
-						"FROM Teams " +
-						"WHERE teamID" +
-						"LIKE ?" + // ?=teamID
-						" AND " +
-						"lgID LIKE ?" + // ?=league
-						"ORDER BY yearID ASC LIMIT 1");
-				firstYearQuery.setString(1, tid);
-				firstYearQuery.setString(2, league);
-				ResultSet innerRS = firstYearQuery.executeQuery();
-				while(innerRS.next()){
-						firstYear = innerRS.getString("yearId");
+			
+			Team t = new Team();
+			try {
+				while(rs.next()){
+						if (count % 10 == 0) System.out.println("num teams: " + count);
+	
+						String tid = rs.getString("teamID");
+						String name = rs.getString("name");
+						String league = rs.getString("lgID");
+						String firstYear = "";
+						String lastYear = "";
+	
+						//get first year
+						PreparedStatement firstYearQuery = conn.prepareStatement("SELECT " +
+								"yearId " +
+								"FROM Teams " +
+								"WHERE teamID" +
+								"LIKE ?" + // ?=teamID
+								" AND " +
+								"lgID LIKE ?" + // ?=league
+								"ORDER BY yearID ASC LIMIT 1");
+						firstYearQuery.setString(1, tid);
+						firstYearQuery.setString(2, league);
+						ResultSet innerRS = firstYearQuery.executeQuery();
+						while(innerRS.next()){
+								firstYear = innerRS.getString("yearId");
+						}
+	
+	
+						//get recent year
+						PreparedStatement recentYearQuery = conn.prepareStatement("SELECT " +
+								"yearId " +
+								"FROM Teams " +
+								"WHERE teamID" +
+								"LIKE ?" + // ?=teamID
+								" AND " +
+								"lgID LIKE ?" + // ?=league
+								"ORDER BY yearID DESC LIMIT 1");
+						recentYearQuery.setString(1, tid);
+						recentYearQuery.setString(2, league);
+						innerRS = recentYearQuery.executeQuery();
+						while(innerRS.next()){
+								lastYear = innerRS.getString("yearId");
+						}
+	
+						if(tid == null || tid.isEmpty() || name == null || name.isEmpty() || league == null || league.isEmpty()){
+							continue;
+						}
+						innerRS.close();
+						
+						t.setName(name);
+						t.setLeague(league);
+						t.setYearFounded(Integer.parseInt(firstYear)); 
+						t.setYearLast(Integer.parseInt(lastYear));
 				}
-
-
-				//get recent year
-				PreparedStatement recentYearQuery = conn.prepareStatement("SELECT " +
-						"yearId " +
-						"FROM Teams " +
-						"WHERE teamID" +
-						"LIKE ?" + // ?=teamID
-						" AND " +
-						"lgID LIKE ?" + // ?=league
-						"ORDER BY yearID DESC LIMIT 1");
-				recentYearQuery.setString(1, tid);
-				recentYearQuery.setString(2, league);
-				innerRS = recentYearQuery.executeQuery();
-				while(innerRS.next()){
-						lastYear = innerRS.getString("yearId");
-				}
-
-				if(tid == null || tid.isEmpty() || name == null || name.isEmpty() || league == null || league.isEmpty()){
-					continue;
-				}
-				innerRS.close();
-
-				Team t = new Team();
-				t.setName(name);
-				t.setLeague(league);
-				t.setYearFounded(Integer.parseInt(firstYear)); 
-				t.setYearLast(Integer.parseInt(lastYear));
-				
-				HibernateUtil.persistTeam(t);
 			}
+			catch(Exception e) {
+				System.out.println("Something went wrong in the internal query");
+			}
+				
+			HibernateUtil.persistTeam(t);
+			
 			rs.close();
 			ps.close();
 		}
 		catch(Exception e) {
-			System.out.println("Something went wrong");
+			System.out.println("Something went wrong in the external query");
 		}
 	}
 		
