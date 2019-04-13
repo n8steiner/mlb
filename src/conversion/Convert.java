@@ -51,17 +51,12 @@ public class Convert {
 
 	public static void convertTeams(){
 		try{
-			PreparedStatement ps = conn.prepareStatement("select " +
-					"teamID, " +
-					"name, " +
-					"lgID "+
-					"from Teams");
+			PreparedStatement ps = conn.prepareStatement("select teamID, name, lgID from Teams");
 					//the years will require joins/searches
 			
 			ResultSet rs = ps.executeQuery();
 			int count=0;
 			
-			Team t = new Team();
 			try {
 				while(rs.next()){
 						if (count % 10 == 0) System.out.println("num teams: " + count);
@@ -69,18 +64,16 @@ public class Convert {
 						String tid = rs.getString("teamID");
 						String name = rs.getString("name");
 						String league = rs.getString("lgID");
+						
+						if(tid == null || tid.isEmpty() || name == null || name.isEmpty() || league == null || league.isEmpty()){
+							continue;
+						}
+						
 						String firstYear = "";
 						String lastYear = "";
 	
 						//get first year
-						PreparedStatement firstYearQuery = conn.prepareStatement("SELECT " +
-								"yearId " +
-								"FROM Teams " +
-								"WHERE teamID" +
-								"LIKE ?" + // ?=teamID
-								" AND " +
-								"lgID LIKE ?" + // ?=league
-								"ORDER BY yearID ASC LIMIT 1");
+						PreparedStatement firstYearQuery = conn.prepareStatement("SELECT yearId FROM Teams WHERE teamID LIKE ? AND lgID LIKE ? ORDER BY yearID ASC LIMIT 1");
 						firstYearQuery.setString(1, tid);
 						firstYearQuery.setString(2, league);
 						ResultSet innerRS = firstYearQuery.executeQuery();
@@ -90,37 +83,27 @@ public class Convert {
 	
 	
 						//get recent year
-						PreparedStatement recentYearQuery = conn.prepareStatement("SELECT " +
-								"yearId " +
-								"FROM Teams " +
-								"WHERE teamID" +
-								"LIKE ?" + // ?=teamID
-								" AND " +
-								"lgID LIKE ?" + // ?=league
-								"ORDER BY yearID DESC LIMIT 1");
+						PreparedStatement recentYearQuery = conn.prepareStatement("SELECT yearId FROM Teams WHERE teamID LIKE ? AND lgID LIKE ? ORDER BY yearID DESC LIMIT 1");
 						recentYearQuery.setString(1, tid);
 						recentYearQuery.setString(2, league);
 						innerRS = recentYearQuery.executeQuery();
 						while(innerRS.next()){
 								lastYear = innerRS.getString("yearId");
 						}
-	
-						if(tid == null || tid.isEmpty() || name == null || name.isEmpty() || league == null || league.isEmpty()){
-							continue;
-						}
 						innerRS.close();
 						
+						Team t = new Team();
 						t.setName(name);
 						t.setLeague(league);
 						t.setYearFounded(Integer.parseInt(firstYear)); 
 						t.setYearLast(Integer.parseInt(lastYear));
+						HibernateUtil.persistTeam(t);
+						count++;
 				}
 			}
 			catch(Exception e) {
 				System.out.println("Something went wrong in the internal query");
 			}
-				
-			HibernateUtil.persistTeam(t);
 			
 			rs.close();
 			ps.close();
