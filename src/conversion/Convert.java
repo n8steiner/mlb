@@ -6,8 +6,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+
 import java.sql.SQLException;
 
 import bo.BattingStats;
@@ -52,15 +54,92 @@ public class Convert {
 
 	public static void convertTeams(){
 		try{
-			PreparedStatement ps = conn.prepareStatement("select teamID, name, lgID, yearID, G, W, L, Rank, attendance from Teams");
+			//stored procedure call
+			PreparedStatement ps = conn.prepareStatement("CALL getTeams()");
 					//the years will require joins/searches
 			
 			ResultSet rs = ps.executeQuery();
+			
+			
 			int count=0;
+			
+			//keeps track of unique teams
+			HashMap<String, Team> teams = new HashMap<String, Team>();
 			
 			try {
 				while(rs.next()){
 						if (count % 10 == 0) System.out.println("num teams: " + count);
+	
+						String tid = rs.getString("teamID");
+						String name = rs.getString("name");
+						String league = rs.getString("lgID");
+						String currentYear = rs.getString("yearID");
+						
+						if(tid == null || tid.isEmpty() || name == null || name.isEmpty() || league == null || league.isEmpty()){
+							continue;
+						}
+						
+						String firstYear = "";
+						String lastYear = "";
+	
+						//get first year
+						PreparedStatement firstYearQuery = conn.prepareStatement("CALL getYearFounded(?, ?)");
+						firstYearQuery.setString(1, tid);
+						firstYearQuery.setString(2, league);
+						ResultSet innerRS = firstYearQuery.executeQuery();
+						while(innerRS.next()){
+								firstYear = innerRS.getString("yearID");
+						}
+	
+	
+						//get recent year
+						PreparedStatement recentYearQuery = conn.prepareStatement("CALL getRecentYear(?, ?)");
+						recentYearQuery.setString(1, tid);
+						recentYearQuery.setString(2, league);
+						innerRS = recentYearQuery.executeQuery();
+						while(innerRS.next()){
+								lastYear = innerRS.getString("yearID");
+						}
+						innerRS.close();
+						
+						Team t = new Team();
+						t.setName(name);
+						t.setLeague(league);
+						t.setYearFounded(Integer.parseInt(firstYear)); 
+						t.setYearLast(Integer.parseInt(lastYear));
+						
+						//persist if most current version of team
+						if(Integer.parseInt(currentYear) == Integer.parseInt(lastYear)) {
+							HibernateUtil.persistTeam(t);
+							teams.put(tid, t);
+						}
+						count++;
+				}
+			}
+			catch(Exception e) {
+				e.printStackTrace();
+			}
+			rs.close();
+			ps.close();
+			
+			//call convert team seasons 
+			convertTeamSeasons(teams);
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static void convertTeamSeasons(HashMap<String, Team> teamList) {
+		try{						
+			PreparedStatement ps = conn.prepareStatement("CALL getTeams()");
+					//the years will require joins/searches
+			ResultSet rs = ps.executeQuery();	
+			int count=0;
+			
+			try {
+				while(rs.next()){
+						if (count % 10 == 0) System.out.println("num team seasons: " + count);
 	
 						String tid = rs.getString("teamID");
 						String name = rs.getString("name");
@@ -76,42 +155,8 @@ public class Convert {
 							continue;
 						}
 						
-						String firstYear = "";
-						String lastYear = "";
-	
-						//get first year
-						PreparedStatement firstYearQuery = conn.prepareStatement("SELECT yearID FROM Teams WHERE teamID LIKE ? AND lgID LIKE ? ORDER BY yearID ASC LIMIT 1");
-						firstYearQuery.setString(1, tid);
-						firstYearQuery.setString(2, league);
-						ResultSet innerRS = firstYearQuery.executeQuery();
-						while(innerRS.next()){
-								firstYear = innerRS.getString("yearID");
-						}
-	
-	
-						//get recent year
-						PreparedStatement recentYearQuery = conn.prepareStatement("SELECT yearID FROM Teams WHERE teamID LIKE ? AND lgID LIKE ? ORDER BY yearID DESC LIMIT 1");
-						recentYearQuery.setString(1, tid);
-						recentYearQuery.setString(2, league);
-						innerRS = recentYearQuery.executeQuery();
-						while(innerRS.next()){
-								lastYear = innerRS.getString("yearID");
-						}
-						innerRS.close();
-						
-						Team t = new Team();
-						t.setName(name);
-						t.setLeague(league);
-						t.setYearFounded(Integer.parseInt(firstYear)); 
-						t.setYearLast(Integer.parseInt(lastYear));
-						HibernateUtil.persistTeam(t);
-						
-						//tid, name, and league were already checked 
-						if(currentYear == null || currentYear.isEmpty()){
-							continue;
-						}
-						
-						System.out.println("made it to create ts");
+						//System.out.println(t.getName());
+						Team t = teamList.get(tid);
 						TeamSeason ts = new TeamSeason(t, Integer.parseInt(currentYear));
 						ts.setYear(Integer.parseInt(currentYear));
 						if(gamesPlayed != null && !gamesPlayed.isEmpty()) {
@@ -129,9 +174,7 @@ public class Convert {
 						if(attendance != null && !attendance.isEmpty()) {
 							ts.setTotalAttendance(Integer.parseInt(attendance));
 						}
-						System.out.println("made it to persist teamseason");
 						HibernateUtil.persistTeamSeason(ts);
-						
 						count++;
 				}
 			}
